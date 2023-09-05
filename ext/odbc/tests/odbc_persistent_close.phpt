@@ -37,7 +37,7 @@ function fetch_context_info($conn) {
 	}
 	$res = odbc_fetch_array($stmt);
 	if ($res) {
-		// this is a binary, so we get a bunch of nulls at the end
+		// this is a binary(128), so we get a bunch of nulls at the end
 		return $res["CONTEXT_INFO"] ? trim($res["CONTEXT_INFO"]) : null;
 	} else {
 		return false;
