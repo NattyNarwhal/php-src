@@ -37,7 +37,7 @@
 #endif /* ZEND_WIN32 */
 #if (defined(HAVE_PTHREAD_GETATTR_NP) && defined(HAVE_PTHREAD_ATTR_GETSTACK)) || \
     defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__) || \
-    defined(__NetBSD__) || defined(__DragonFly__) || defined(__sun)
+    defined(__NetBSD__) || defined(__DragonFly__) || defined(__sun) || defined(_AIX)
 # include <pthread.h>
 #endif
 #if defined(__FreeBSD__) || defined(__DragonFly__)
@@ -771,6 +771,41 @@ static bool zend_call_stack_get_solaris(zend_call_stack *stack)
 }
 #endif /* defined(__sun) */
 
+#if defined(_AIX)
+static bool zend_call_stack_get_aix(zend_call_stack *stack)
+{
+	struct __pthrdsinfo pi;
+	/* it also wants to dump registers along with the stack info */
+	char regbuf[255];
+	int regbuf_size = sizeif(regbuf);
+
+	pthread_t tid = pthread_self();
+	/*
+	 * We use this function because it works on both AIX and PASE.
+	 * AIX also supports a SysV style /proc, but it's not available on
+	 * PASE, and neither is getattr_np for stack information.
+	 */
+	int err = pthread_getthrds_np(&tid, PTHRDSINFO_QUERY_ALL, &pi, regbuf, &regbuf_size);
+	if (err) {
+		return false;
+	}
+
+	/*
+	 * mono and ruby avoid stacksize as it is wrong, see:
+	 * https://github.com/ruby/ruby/commit/a2594be783c727c6034308f5294333752c3845bb
+	 */
+	stack->base = pi.__pi_stackaddr;
+	stack->max_size = pi.__pi_stackend - pi.__pi_stackaddr;
+
+	return true;
+}
+#else
+static bool zend_call_stack_get_aix(zend_call_stack *stack)
+{
+	return false;
+}
+#endif /* defined(_AIX) */
+
 /** Get the stack information for the calling thread */
 ZEND_API bool zend_call_stack_get(zend_call_stack *stack)
 {
@@ -803,6 +838,10 @@ ZEND_API bool zend_call_stack_get(zend_call_stack *stack)
 	}
 
 	if (zend_call_stack_get_solaris(stack)) {
+		return true;
+	}
+
+	if (zend_call_stack_get_aix(stack)) {
 		return true;
 	}
 
