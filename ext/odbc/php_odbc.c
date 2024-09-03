@@ -1201,7 +1201,6 @@ PHP_FUNCTION(odbc_cursor)
 }
 /* }}} */
 
-#ifdef HAVE_SQLDATASOURCES
 /* {{{ Return information about the currently connected data source */
 PHP_FUNCTION(odbc_data_source)
 {
@@ -1257,7 +1256,6 @@ PHP_FUNCTION(odbc_data_source)
 
 }
 /* }}} */
-#endif /* HAVE_SQLDATASOURCES */
 
 /* {{{ Prepare and execute an SQL statement */
 /* XXX Use flags */
