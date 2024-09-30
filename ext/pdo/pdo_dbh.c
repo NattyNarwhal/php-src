@@ -244,7 +244,8 @@ static bool create_driver_specific_pdo_object(pdo_driver_t *driver, zend_class_e
 			}
 
 			/* A driver-specific implementation was instantiated via the connect() method of the appropriate driver class */
-			object_init_ex(new_object, ce_based_on_called_object);
+			if (new_object)
+				object_init_ex(new_object, ce_based_on_called_object);
 			return true;
 		} else {
 			zend_throw_exception_ex(pdo_exception_ce, 0,
@@ -266,10 +267,12 @@ static bool create_driver_specific_pdo_object(pdo_driver_t *driver, zend_class_e
 		}
 
 		/* A driver-specific implementation was instantiated via PDO::__construct() */
-		object_init_ex(new_object, ce_based_on_driver_name);
+		if (new_object)
+			object_init_ex(new_object, ce_based_on_driver_name);
 	} else {
 		/* No driver-specific implementation found */
-		object_init_ex(new_object, called_scope);
+		if (new_object)
+			object_init_ex(new_object, called_scope);
 	}
 
 	return true;
@@ -351,6 +354,10 @@ static void internal_construct(INTERNAL_FUNCTION_PARAMETERS, zend_object *object
 
 		dbh = Z_PDO_DBH_P(new_zval_object);
 	} else {
+		if (!create_driver_specific_pdo_object(driver, current_scope, NULL)) {
+			RETURN_THROWS();
+		}
+
 		dbh = php_pdo_dbh_fetch_inner(object);
 	}
 
@@ -497,14 +504,14 @@ options:
 /* {{{ */
 PHP_METHOD(PDO, __construct)
 {
-	internal_construct(INTERNAL_FUNCTION_PARAM_PASSTHRU, Z_OBJ(EX(This)), EX(This).value.ce, NULL);
+	internal_construct(INTERNAL_FUNCTION_PARAM_PASSTHRU, Z_OBJ(EX(This)), Z_OBJ(EX(This))->ce, NULL);
 }
 /* }}} */
 
 /* {{{ */
 PHP_METHOD(PDO, connect)
 {
-	internal_construct(INTERNAL_FUNCTION_PARAM_PASSTHRU, Z_OBJ(EX(This)), EX(This).value.ce, return_value);
+	internal_construct(INTERNAL_FUNCTION_PARAM_PASSTHRU, Z_OBJ(EX(This)), Z_OBJ(EX(This))->ce, return_value);
 }
 /* }}} */
 
