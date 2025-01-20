@@ -597,8 +597,7 @@ static int glob0(const Char *pattern, glob_t *pglob, struct glob_lim *limitp)
 			size_t n = pglob->gl_pathc - oldpathc;
 			size_t o = pglob->gl_offs + oldpathc;
 
-			if ((path_stat = ecalloc(n, sizeof(*path_stat))) == NULL)
-				return GLOB_NOSPACE;
+			path_stat = ecalloc(n, sizeof(*path_stat));
 			for (i = 0; i < n; i++) {
 				path_stat[i].gps_path = pglob->gl_pathv[o + i];
 				path_stat[i].gps_stat = pglob->gl_statv[o + i];
@@ -841,8 +840,6 @@ static int globextend(const Char *path, glob_t *pglob, struct glob_lim *limitp, 
 	}
 
 	pathv = safe_erealloc_rel(pglob->gl_pathv, newn, sizeof(*pathv), 0);
-	if (pathv == NULL)
-		goto nospace;
 	if (pglob->gl_pathv == NULL && pglob->gl_offs > 0) {
 		/* first time around -- clear initial gl_offs items */
 		pathv += pglob->gl_offs;
@@ -871,9 +868,8 @@ static int globextend(const Char *path, glob_t *pglob, struct glob_lim *limitp, 
 				errno = 0;
 				return(GLOB_NOSPACE);
 			}
-			if ((statv[pglob->gl_offs + pglob->gl_pathc] =
-				emalloc(sizeof(**statv))) == NULL)
-				goto copy_error;
+			statv[pglob->gl_offs + pglob->gl_pathc] =
+				emalloc(sizeof(**statv));
 			memcpy(statv[pglob->gl_offs + pglob->gl_pathc], sb,
 				sizeof(*sb));
 		}
@@ -884,13 +880,12 @@ static int globextend(const Char *path, glob_t *pglob, struct glob_lim *limitp, 
 		;
 	len = (size_t)(p - path);
 	limitp->glim_malloc += len;
-	if ((copy = emalloc(len)) != NULL) {
-		if (g_Ctoc(path, copy, len)) {
-			efree(copy);
-			return(GLOB_NOSPACE);
-		}
-		pathv[pglob->gl_offs + pglob->gl_pathc++] = copy;
+	copy = emalloc(len);
+	if (g_Ctoc(path, copy, len)) {
+		efree(copy);
+		return(GLOB_NOSPACE);
 	}
+	pathv[pglob->gl_offs + pglob->gl_pathc++] = copy;
 	pathv[pglob->gl_offs + pglob->gl_pathc] = NULL;
 
 	if ((pglob->gl_flags & GLOB_LIMIT) &&
