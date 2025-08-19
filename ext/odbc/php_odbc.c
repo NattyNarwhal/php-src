@@ -1372,7 +1372,9 @@ static void php_odbc_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int result_type)
 	result = Z_ODBC_RESULT_P(pv_res);
 	CHECK_ODBC_RESULT(result);
 
-	/* TODO deprecate $row argument values less than 1 after PHP 8.4 */
+	if (!pv_row_is_null && pv_row < 1) {
+		php_error_docref(NULL, E_WARNING, "Row number must be at least 1");
+	}
 
 #ifndef HAVE_SQL_EXTENDED_FETCH
 	if (!pv_row_is_null && pv_row > 0) {
@@ -1537,7 +1539,9 @@ PHP_FUNCTION(odbc_fetch_into)
 	result = Z_ODBC_RESULT_P(pv_res);
 	CHECK_ODBC_RESULT(result);
 
-	/* TODO deprecate $row argument values less than 1 after PHP 8.4 */
+	if (!pv_row_is_null && pv_row < 1) {
+		php_error_docref(NULL, E_WARNING, "Row number must be at least 1");
+	}
 
 #ifndef HAVE_SQL_EXTENDED_FETCH
 	if (!pv_row_is_null && pv_row > 0) {
